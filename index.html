@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense &amp; Budget Visualizer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Header: Balance summary + theme toggle + navigation -->
+    <header id="app-header">
+      <div id="balance-summary">
+        <div class="summary-item">
+          <span class="summary-label">Balance</span>
+          <span id="balance" class="balance-amount">$0.00</span>
+        </div>
+        <div class="summary-item income">
+          <span class="summary-label">Income</span>
+          <span id="total-income" class="income-amount">$0.00</span>
+        </div>
+        <div class="summary-item expense">
+          <span class="summary-label">Expenses</span>
+          <span id="total-expenses" class="expense-amount">$0.00</span>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button
+          id="theme-toggle"
+          aria-label="Toggle dark/light mode"
+          type="button"
+        >
+          🌙
+        </button>
+        <button
+          id="nav-summary"
+          type="button"
+          aria-controls="summary-view"
+          aria-expanded="false"
+        >Monthly Summary</button>
+      </div>
+    </header>
+
+    <!-- Main view: Transaction form + Transaction list -->
+    <main id="main-view">
+      <!-- Add Transaction Form -->
+      <section id="form-section">
+        <h2>Add Transaction</h2>
+        <form id="transaction-form" novalidate>
+          <div class="form-group">
+            <label for="tx-description"
+              >Description <span aria-hidden="true">*</span></label
+            >
+            <input
+              type="text"
+              id="tx-description"
+              name="description"
+              placeholder="e.g. Grocery shopping"
+              required
+              autocomplete="off"
+              aria-required="true"
+              aria-describedby="error-description"
+            />
+            <span
+              id="error-description"
+              class="validation-error"
+              role="alert"
+              aria-live="polite"
+              hidden
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-amount"
+              >Amount <span aria-hidden="true">*</span></label
+            >
+            <input
+              type="number"
+              id="tx-amount"
+              name="amount"
+              placeholder="0.00"
+              min="0.01"
+              step="0.01"
+              required
+              aria-required="true"
+              aria-describedby="error-amount"
+            />
+            <span
+              id="error-amount"
+              class="validation-error"
+              role="alert"
+              aria-live="polite"
+              hidden
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-type">Type <span aria-hidden="true">*</span></label>
+            <select id="tx-type" name="type" required aria-required="true">
+              <option value="expense" selected>Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-category"
+              >Category <span aria-hidden="true">*</span></label
+            >
+            <select
+              id="tx-category"
+              name="category"
+              required
+              aria-required="true"
+            >
+              <!-- Built-in categories populated by Controller.init() -->
+              <optgroup label="Built-in Categories" id="builtin-category-group">
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Health">Health</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Other">Other</option>
+              </optgroup>
+              <optgroup label="Custom Categories" id="custom-category-group">
+                <!-- Custom categories inserted here by Controller -->
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-date">Date <span aria-hidden="true">*</span></label>
+            <input
+              type="date"
+              id="tx-date"
+              name="date"
+              required
+              aria-required="true"
+            />
+          </div>
+
+          <button type="submit" id="btn-add-transaction">
+            Add Transaction
+          </button>
+        </form>
+      </section>
+
+      <!-- Transaction List -->
+      <section id="list-section">
+        <h2>Transaction History</h2>
+        <ul
+          id="transaction-list"
+          aria-label="Transaction history"
+          aria-live="polite"
+        >
+          <!-- Transactions rendered here by Renderer -->
+        </ul>
+        <p id="empty-state-transactions" class="empty-state" hidden>
+          No transactions recorded yet. Add one above!
+        </p>
+        <p id="error-state-transactions" class="error-state" hidden>
+          Transactions could not be loaded. Please reload the page.
+        </p>
+      </section>
+    </main>
+
+    <!-- Chart Section: Doughnut chart + legend -->
+    <section id="chart-section">
+      <h2>Spending by Category</h2>
+      <div id="chart-container">
+        <canvas
+          id="expense-chart"
+          aria-label="Spending by category chart"
+          role="img"
+        ></canvas>
+        <p id="chart-placeholder" class="empty-state" hidden>
+          No expense data available. Add some expense transactions to see the
+          chart.
+        </p>
+        <p id="chart-error" class="error-state" hidden>
+          Chart unavailable — unable to load chart library.
+        </p>
+      </div>
+      <ul id="chart-legend" aria-label="Chart legend"></ul>
+    </section>
+
+    <!-- Monthly Summary View (hidden by default) -->
+    <section id="summary-view" hidden>
+      <div class="summary-header">
+        <button
+          id="btn-back-main"
+          type="button"
+          aria-controls="main-view"
+        >&larr; Back</button>
+        <h2 id="summary-view-heading" tabindex="-1">Monthly Summary</h2>
+      </div>
+
+      <div id="summary-controls">
+        <label for="summary-month">Month</label>
+        <select id="summary-month" aria-label="Select month">
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+
+        <label for="summary-year">Year</label>
+        <select id="summary-year" aria-label="Select year">
+          <!-- Years populated dynamically by Controller -->
+        </select>
+      </div>
+
+      <div id="summary-totals">
+        <div class="summary-item income">
+          <span class="summary-label">Monthly Income</span>
+          <span id="summary-total-income">$0.00</span>
+        </div>
+        <div class="summary-item expense">
+          <span class="summary-label">Monthly Expenses</span>
+          <span id="summary-total-expenses">$0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Net Balance</span>
+          <span id="summary-net-balance">$0.00</span>
+        </div>
+      </div>
+
+      <div id="summary-breakdown">
+        <h3>Category Breakdown</h3>
+        <table
+          id="summary-category-table"
+          aria-label="Monthly expense breakdown by category"
+        >
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col">Amount</th>
+              <th scope="col">% of Expenses</th>
+            </tr>
+          </thead>
+          <tbody id="summary-category-body">
+            <!-- Rows rendered by Renderer.renderMonthlySummary() -->
+          </tbody>
+        </table>
+        <p id="summary-empty-state" class="empty-state" hidden>
+          No transactions recorded for this month.
+        </p>
+      </div>
+    </section>
+
+    <!-- Custom Category Management -->
+    <section id="category-section">
+      <h2>Manage Categories</h2>
+      <form id="category-form" novalidate>
+        <div class="form-group">
+          <label for="new-category-name">New Category Name</label>
+          <input
+            type="text"
+            id="new-category-name"
+            name="categoryName"
+            placeholder="e.g. Subscriptions"
+            maxlength="50"
+            autocomplete="off"
+            aria-describedby="error-category"
+          />
+          <span
+            id="error-category"
+            class="validation-error"
+            role="alert"
+            aria-live="polite"
+            hidden
+          ></span>
+        </div>
+        <button type="submit" id="btn-add-category">Add Category</button>
+      </form>
+
+      <ul
+        id="custom-category-list"
+        aria-label="Custom categories"
+        aria-live="polite"
+      >
+        <!-- Custom categories listed here -->
+      </ul>
+      <p id="empty-state-categories" class="empty-state" hidden>
+        No custom categories yet.
+      </p>
+    </section>
+
+    <!-- Storage Warning Banner (non-blocking) -->
+    <div id="storage-warning" role="alert" aria-live="assertive" hidden>
+      <span id="storage-warning-message">
+        Local storage is unavailable. Your data will not be saved for this
+        session.
+      </span>
+      <button
+        id="btn-dismiss-warning"
+        type="button"
+        aria-label="Dismiss warning"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" aria-live="polite" aria-atomic="true" hidden>
+      <span id="toast-message"></span>
+    </div>
+
+    <!-- Chart.js from CDN with integrity check and graceful fallback -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+      integrity="sha256-DiMmxoaAcr7BWSdgxnKQQ8ruopYKK0bO5qIZKqxqv/A="
+      crossorigin="anonymous"
+      onerror="window.__chartJsLoadFailed = true"
+    ></script>
+
+    <script src="app.js"></script>
+  </body>
+</html>
